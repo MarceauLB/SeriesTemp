@@ -1,17 +1,29 @@
 setwd("~/00_Ensai/serie_temporelle/SeriesTemp/data_analysis_r/")
 
+# Author: Alexandre Maghames 
+
+# Clear the environment
 rm(list=ls())
 
+# Load libraries 
 library(quantmod)
 library(tseries)
 library(forecast)
+library(evd)
 
+# Set Seed 
+set.seed(13012025)
+
+# Define the ticker symbol
 ticker <- "GOOGL"
-getSymbols(ticker, src = "yahoo")
+start_date <- "2007-01-01"
+end_date <- "2024-12-31"
 
-serie_open <- GOOGL$GOOGL.Open
-ts_serie <- ts(serie_open$GOOGL.Open)
+#Import data 
+getSymbols(ticker, src = "yahoo",from=start_date,to=end_date)
 
+# Focus Open 
+ts_serie <- ts(GOOGL$GOOGL.Open)
 plot(ts_serie)
 adf.test(ts_serie)
 # H0 : la série est non stationnaire 
@@ -21,23 +33,23 @@ adf.test(ts_serie)
 acf(ts_serie)
 pacf(ts_serie)
 
-# On la différencie donc :
-serie_diff <- diff(ts_serie,na.pad = FALSE)
-plot.ts(serie_diff)
+# on va travailler sur la log(serie)
+log_ts <- log(ts_serie)
+plot(log_ts)
+adf.test(log_ts) 
+# p-val 0.056. On ne peut pas rejetter H0. La série est non stationnaire 
+
+# on la différencie 
+serie_diff <- diff(log_ts)
+plot(serie_diff)
 adf.test(serie_diff)
 # p-val à 0.01. La série semble être stationnarisé. 
 acf(serie_diff,lag.max = 100)
 pacf(serie_diff,lag.max = 100)
 
-serie_diff2 <- diff(serie_diff,na.pad = FALSE)
-plot.ts(serie_diff2)
-adf.test(serie_diff2)
-acf(serie_diff2,lag.max = 30)
-pacf(serie_diff2,lag.max = 30)
 
-
-res <- auto.arima(ts_serie)
-
+res <- auto.arima(log_ts)
+res
 
 
 
