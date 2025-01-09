@@ -1,6 +1,15 @@
-setwd("~/00_Ensai/serie_temporelle/SeriesTemp/data_analysis_r/")
+# Advanced Time Series - Project
 
-# Author: Alexandre Maghames 
+# Authors: 
+# JARRY Antoine
+# MALLICK Gaël
+# MAGHAMES Alexandre
+# LE BOT Marceau
+# BRAULT Tom
+
+#------------------------------------------------------------------------
+# Preliminary settings
+#------------------------------------------------------------------------
 
 # Clear the environment
 rm(list=ls())
@@ -16,44 +25,72 @@ set.seed(13012025)
 
 # Define the ticker symbol
 ticker <- "GOOGL"
+
+# Dates
 start_date <- "2007-01-01"
 end_date <- "2024-12-31"
+# We select a large range of dates which could be better for predictions
+# in the following
 
-#Import data 
+# Import data 
 getSymbols(ticker, src = "yahoo",from=start_date,to=end_date)
 
-# Focus Open 
-ts_serie <- ts(GOOGL$GOOGL.Open)
-plot(ts_serie)
-adf.test(ts_serie)
-# H0 : la série est non stationnaire 
-# H1 : la série est stationnaire 
-# p-valeur à 0.9782 : on ne peut pas rejetter H0. 
-# La série n'est pas stationnaire 
-acf(ts_serie)
-pacf(ts_serie)
+#------------------------------------------------------------------------
+# Question 1: Data Preprocessing
+#------------------------------------------------------------------------
 
-# on va travailler sur la log(serie)
+# We start by displaying every available time series
+names(GOOGL) = c("open","high","low","close","volume","adjusted")
+
+any(is.na(GOOGL)) # no missing value in the time series
+
+global_google_ts = ts(GOOGL)
+plot(global_google_ts, main = "Time series of each available variable")
+# Except the volume time series, all the other time series exhibit the same general trend.
+
+#------------------------------------------------------------------------
+# Question 2: Exploratory Data Analysis (EDA)
+#------------------------------------------------------------------------
+
+# Focus on Opening Prices
+google_open_prices = GOOGL$open
+ts_serie <- ts(google_open_prices)
+plot(ts_serie, main = "Initial time series of Google opening prices", col = "darkblue")
+plot(google_open_prices, main = "Initial time series of Google opening prices", col = "darkblue")
+
+
+# The time series has a wigglier trend when time increases. This means that the variance increases over time 
+# so we will consider a log-transformation to make the variance constant.
 log_ts <- log(ts_serie)
-plot(log_ts)
-adf.test(log_ts) 
-# p-val 0.056. On ne peut pas rejetter H0. La série est non stationnaire 
+plot(log_ts, main = "Log-transformed time series")
 
-# on la différencie 
+par(mfrow = c(1,2))
+acf(log_ts, main = "ACF of the log-transformed time series")
+pacf(log_ts, main = "PACF of the log-transformed time series")
+dev.off()
+# The ACF decreases slowly, suggesting a non-stationarity for the time series.
+
+# Augmented Dickey-Fuller test:
+adf.test(log_ts)
+# H0 : non-stationary series (existence of a unit root) 
+# H1 : stationary series 
+# p-value is 0.057 : we cannot reject H0 (with confidence level 5%). 
+# The series is not stationary
+
+# We difference it 
 serie_diff <- diff(log_ts)
-plot(serie_diff)
+plot(serie_diff, main = "Time series of the log-returns of Google opening prices")
+
 adf.test(serie_diff)
-# p-val à 0.01. La série semble être stationnarisé. 
+# p-value = 0.01. The time series seems stationary.
+
+par(mfrow = c(1,2))
 acf(serie_diff,lag.max = 100)
 pacf(serie_diff,lag.max = 100)
+dev.off()
+# The ACF decreases quickly this time, which suggests once again that
+# stationarity has been reached.
 
 
 res <- auto.arima(log_ts)
 res
-
-
-
-
-
-
-
