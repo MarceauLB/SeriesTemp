@@ -1,6 +1,5 @@
 setwd("~/00_Ensai/serie_temporelle/SeriesTemp/data_analysis_r/")
-
-# Author: Alexandre Maghames 
+# projetseriestemp@outlook.fr - Vendredi2024!
 
 # Clear the environment
 rm(list=ls())
@@ -16,44 +15,53 @@ set.seed(13012025)
 
 # Define the ticker symbol
 ticker <- "GOOGL"
+
+# Dates
 start_date <- "2007-01-01"
 end_date <- "2024-12-31"
 
-#Import data 
+# Import data 
 getSymbols(ticker, src = "yahoo",from=start_date,to=end_date)
 
-# Focus Open 
-ts_serie <- ts(GOOGL$GOOGL.Open)
-plot(ts_serie)
-adf.test(ts_serie)
-# H0 : la série est non stationnaire 
-# H1 : la série est stationnaire 
-# p-valeur à 0.9782 : on ne peut pas rejetter H0. 
-# La série n'est pas stationnaire 
-acf(ts_serie)
-pacf(ts_serie)
+# Focus on Open Prices
+google_open_prices = GOOGL$GOOGL.Open
+ts_serie <- ts(google_open_prices)
+plot(ts_serie, main = "Initial time series of Google opening prices", col = "darkblue")
+plot(google_open_prices, main = "Initial time series of Google opening prices", col = "darkblue")
 
-# on va travailler sur la log(serie)
+
+# The time series has a wigglier trend when time increases. This means that the variance increases over time 
+# so we will consider a log-transformation to make the variance constant.
 log_ts <- log(ts_serie)
-plot(log_ts)
-adf.test(log_ts) 
-# p-val 0.056. On ne peut pas rejetter H0. La série est non stationnaire 
+plot(log_ts, main = "Log-transformed time series")
 
-# on la différencie 
+par(mfrow = c(1,2))
+acf(log_ts, main = "ACF of the log-transformed time series")
+pacf(log_ts, main = "PACF of the log-transformed time series")
+dev.off()
+# The ACF decreases slowly, suggesting a non-stationarity for the time series.
+
+# Augmented Dickey-Fuller test:
+adf.test(log_ts)
+# H0 : non-stationary series (existence of a unit root) 
+# H1 : stationary series 
+# p-value is 0.057 : we cannot reject H0 (with confidence level 5%). 
+# The series is not stationary
+
+# We difference it 
 serie_diff <- diff(log_ts)
-plot(serie_diff)
+plot(serie_diff, main = "Time series of the log-returns of Google opening prices")
+
 adf.test(serie_diff)
-# p-val à 0.01. La série semble être stationnarisé. 
+# p-value = 0.01. The time series seems stationary.
+
+par(mfrow = c(1,2))
 acf(serie_diff,lag.max = 100)
 pacf(serie_diff,lag.max = 100)
+dev.off()
+# The ACF decreases quickly this time, which suggests once again that
+# stationarity has been reached.
 
 
 res <- auto.arima(log_ts)
 res
-
-
-
-
-
-
-
