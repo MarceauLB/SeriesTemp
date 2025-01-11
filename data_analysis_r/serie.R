@@ -28,7 +28,7 @@ ticker <- "GOOGL"
 
 # Dates
 start_date <- "2007-01-01"
-end_date <- "2018-12-31"
+end_date <- "2024-12-31"
 # We select a large range of dates which could be better for predictions
 # in the following
 
@@ -140,13 +140,14 @@ train_diff <- serie_diff[1:2768]
 test_diff <- serie_diff[2769:3018]
 2768+250
 
-
 #############################################################################################################################"
 ### Model 1 : Models ARIMA 
 #############################################################################################################################"
+acf(train_diff,lag.max=100)
+pacf(train_diff,lag.max = 100)
 
 # Check best ARIMA model for different values of p and q based on AIC and BIC
-p_max <- 5
+p_max <- 7
 q_max <- 5
 AIC_arima <- matrix(0,p_max,q_max)
 BIC_arima <-  matrix(0,p_max,q_max)
@@ -170,24 +171,25 @@ for (i in 1:p_max){
 AIC_arima
 index_best_arima_AIC = which(AIC_arima == min(AIC_arima), arr.ind = TRUE)
 index_best_arima_AIC
+#AIC => ARIMA(4,1,4) 
 
 BIC_arima
 index_best_arima_BIC = which(BIC_arima == min(BIC_arima), arr.ind = TRUE)
 index_best_arima_BIC
+# BIC => ARIMA(1,1,3)
 
-
-# Both AIC and BIC are minimized for p = 1 and q = 0 -> ARIMA(1,1,0) model
-best_model_arima = arima(log_ts, order=c(1,1,0))
+# ARIMA 
+best_model_arima = arima(train_diff, order=c(1,0,3))
 best_model_arima
 # significant AR1 parameter but with low value
 
-suggested_model_arima <- auto.arima(log_ts)
+
+suggested_model_arima <- auto.arima(train_diff)
 suggested_model_arima
-# ARIMA(0,1,1) suggested as we proposed as a first guess
-# significant MA1 parameter but with low value
+# ARIMA(3,0,2) suggested
+
 
 # Further analysis of residuals: Ljung-Box test
-
 # Proposed model
 tsdiag(best_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
 # residuals appear centered (first plot), uncorrelated (second plot) 
@@ -215,5 +217,53 @@ dev.off()
 #------------------------------------------------------------------------
 # Forecasting
 #------------------------------------------------------------------------
-
 # use function "predict"
+
+# We use here the ARIMA Model for making predictions
+best_model_arima  # Display the model details
+
+# First 5 data points from the test set
+test_diff[1:5]
+p5 <- predict(best_model_arima, 5)
+
+# Calculate MAE, MSE, RMSE for 5-step forecast
+mae_arima_5 <- mean(abs(test_diff[1:5] - p5$pred))  # Mean Absolute Error
+mse_arima_5 <- mean((test_diff[1:5] - p5$pred)^2)  # Mean Squared Error
+rmse_arima_5 <- sqrt(mse_arima_5)  # Root Mean Squared Error
+mae_arima_5 
+mse_arima_5 
+rmse_arima_5
+
+# First 22 data points from the test set
+test_diff[1:22]
+p22 <- predict(best_model_arima, 22)
+
+mae_arima_22 <- mean(abs(test_diff[1:22] - p22$pred))
+mse_arima_22 <- mean((test_diff[1:22] - p22$pred)^2)
+rmse_arima_22 <- sqrt(mse_arima_22)
+mae_arima_22
+mse_arima_22 
+rmse_arima_22
+
+# First 250 data points from the test set
+test_diff[1:250]
+p250 <- predict(best_model_arima, 250)
+mae_arima_250 <- mean(abs(test_diff[1:250] - p250$pred))
+mse_arima_250 <- mean((test_diff[1:250] - p250$pred)^2)
+rmse_arima_250 <- sqrt(mse_arima_250)
+mae_arima_250
+mse_arima_250 
+rmse_arima_250
+
+
+plot(test_diff[1:22], type="l", 
+     ylim=c(min(c(p22$pred, test_diff[1:22])), max(c(p5$pred, test_diff[1:22]))), 
+     col="blue", 
+     main="Actual vs Predicted for 5 Steps", 
+     xlab="Time", 
+     ylab="Value")
+lines(c(p22$pred), col="red")
+
+
+
+
