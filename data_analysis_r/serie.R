@@ -28,7 +28,7 @@ ticker <- "GOOGL"
 
 # Dates
 start_date <- "2007-01-01"
-end_date <- "2024-12-31"
+end_date <- "2018-12-31"
 # We select a large range of dates which could be better for predictions
 # in the following
 
@@ -44,6 +44,15 @@ names(GOOGL) = c("open","high","low","close","volume","adjusted")
 
 any(is.na(GOOGL)) # no missing value in the time series
 
+par(mfrow=c(1,1))
+plot(GOOGL$open, main = "Open Prices", col = "darkblue")
+plot(GOOGL$high, main = "High Prices", col = "darkblue")
+plot(GOOGL$low, main = "Low Prices", col = "darkblue")
+plot(GOOGL$close, main = "Close Prices", col = "darkblue")
+plot(GOOGL$volume, main = "Volume Close Prices", col = "darkblue")
+plot(GOOGL$adjusted, main = "Adjusted", col = "darkblue")
+
+
 global_google_ts = ts(GOOGL)
 plot(global_google_ts, main = "Time series of each available variable")
 # Except the volume time series, all the other time series exhibit the same general trend.
@@ -51,6 +60,15 @@ plot(global_google_ts, main = "Time series of each available variable")
 #------------------------------------------------------------------------
 # Question 2: Exploratory Data Analysis (EDA)
 #------------------------------------------------------------------------
+# Divising data until 2018 only
+start_date <- "2007-01-01"
+end_date <- "2018-12-31"
+# We select a large range of dates which could be better for predictions
+
+# Import data 
+getSymbols(ticker, src = "yahoo",from=start_date,to=end_date)
+names(GOOGL) = c("open","high","low","close","volume","adjusted")
+
 
 # Focus on Opening Prices
 google_open_prices = GOOGL$open
@@ -62,13 +80,13 @@ plot(google_open_prices, main = "Initial time series of Google opening prices", 
 # The trend of the time series has gets wigglier as time increases. This means that the variance increases over time 
 # so we will consider a log-transformation to make the variance constant.
 log_ts <- log(ts_serie)
-plot(log_ts, main = "Log-transformed time series")
+plot(log_ts, main = "Log-transformed time series",col="darkblue")
+
 
 ### Trend and seasonality analysis
-
 par(mfrow = c(1,2))
-acf(log_ts, main = "ACF of the log-transformed time series")
-pacf(log_ts, main = "PACF of the log-transformed time series")
+acf(log_ts, main = "ACF of the log-transformed time series",lag.max = 100)
+pacf(log_ts, main = "PACF of the log-transformed time series",lag.max=100)
 dev.off()
 # The ACF decreases slowly, suggesting a non-stationarity for the time series.
 
@@ -76,7 +94,7 @@ dev.off()
 adf.test(log_ts)
 # H0 : non-stationary series (existence of a unit root) 
 # H1 : stationary series 
-# p-value is 0.057 : we cannot reject H0 (with confidence level 5%). 
+# p-value is 0.1938 : we cannot reject H0 (with confidence level 5%). 
 # The series is not stationary
 
 # KPSS test
@@ -87,7 +105,7 @@ kpss.test(log_ts)
 
 # We difference it 
 serie_diff <- diff(log_ts)
-plot(serie_diff, main = "Time series of the log-returns of Google opening prices")
+plot(serie_diff, main = "Time series of the log-returns of Google opening prices",col="darkblue")
 
 # ADF test
 adf.test(serie_diff)
@@ -97,9 +115,9 @@ adf.test(serie_diff)
 kpss.test(serie_diff)
 # p-value = 0.1 -> stationarity
 
-par(mfrow = c(1,2))
-acf(serie_diff,lag.max = 100)
-pacf(serie_diff,lag.max = 100)
+par(mfrow = c(1,1))
+acf(serie_diff,lag.max = 100, main="ACF of the diff-log-time series")
+pacf(serie_diff,lag.max = 100, main="PACF of the diff-log-time series")
 dev.off()
 # The ACF cuts off quickly: suggests once again stationarity has been reached.
 
@@ -109,29 +127,42 @@ dev.off()
 # An ARMA(0,1) might be a good first guess for the differenced series,
 # that is, an ARIMA(0,1,1) for the log-time series.
 
-# Both the ACF and PACF do not suggest any seasonality.
 
+# Both the ACF and PACF do not suggest any seasonality.
 spec.pgram(serie_diff, col = "darkblue", main = "Smoothing periodogram of the log-returns of Google opening prices",
            span = 4)
 # Again, no clear seasonality but note that a season might be hard to find with data for each working day
 
+google_open_prices$open
+training_data <- subset(google_open_prices, index(google_open_prices) <= "2017-12-31")
+test_data <- subset(google_open_prices, index(google_open_prices) > "2017-12-31")
+train_diff <- serie_diff[1:2768]
+test_diff <- serie_diff[2769:3018]
+2768+250
+
+
+#############################################################################################################################"
+### Model 1 : Models ARIMA 
+#############################################################################################################################"
+
 # Check best ARIMA model for different values of p and q based on AIC and BIC
-p_max = 5
-q_max = 5
-AIC_arima = matrix(0,p_max,q_max,byrow=T)
-BIC_arima = matrix(0,p_max,q_max,byrow=T)
+p_max <- 5
+q_max <- 5
+AIC_arima <- matrix(0,p_max,q_max)
+BIC_arima <-  matrix(0,p_max,q_max)
 
 for (i in 1:p_max){
   for (j in 1:q_max){
-    model = arima(log_ts, order = c((i-1),1,(j-1)))
-    if(Box.test(model$residuals, lag=30)$p.value>0.05){ 
+    model <- arima(train_diff, order = c((i-1),0,(j-1)))
+    test <- Box.test(model$residuals, lag=30)
+    if(test$p.value>0.01){ 
       # Box-Pierce test suggesting no autocorrelation between residuals
       AIC_arima[i,j] = AIC(model)
       BIC_arima[i,j] = BIC(model)}
     else{
       # Box-Pierce test suggesting autocorrelation between residuals (cases to exclude)
-      AIC_arima[i,j] = -1
-      BIC_arima[i,j] = -1
+      AIC_arima[i,j] = Inf
+      BIC_arima[i,j] = Inf
       }
   }
 }
@@ -144,8 +175,8 @@ BIC_arima
 index_best_arima_BIC = which(BIC_arima == min(BIC_arima), arr.ind = TRUE)
 index_best_arima_BIC
 
-# Both AIC and BIC are minimized for p = 1 and q = 0 -> ARIMA(1,1,0) model
 
+# Both AIC and BIC are minimized for p = 1 and q = 0 -> ARIMA(1,1,0) model
 best_model_arima = arima(log_ts, order=c(1,1,0))
 best_model_arima
 # significant AR1 parameter but with low value
