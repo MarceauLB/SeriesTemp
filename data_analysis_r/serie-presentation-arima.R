@@ -394,3 +394,5 @@ conf_int_fractional_diff_param
 # 0 belongs to the confidence interval, suggesting that a FARIMA model is not adapted
 # to our data. An ARIMA model seems better here.
 
+
+
