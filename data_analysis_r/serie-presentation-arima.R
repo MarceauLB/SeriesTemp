@@ -196,7 +196,7 @@ suggested_model_arima
 
 # Further analysis of residuals: Ljung-Box test
 # Proposed model
-tsdiag(best_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
+tsdiag(best_model_arima, gof.lag = 100, main = "Ljung-Box test on residuals")
 # residuals appear centered (first plot), uncorrelated (second plot) 
 # but Ljung-Box statistics lie under 0.05 threshold for lag >= 37.
 
@@ -290,7 +290,7 @@ write.csv(create_data, "forecast_predictions_arima.csv", row.names = FALSE)
 #Lire les données à partir du fichier CSV
 data_arima <- read.csv("forecast_predictions_arima.csv")
 data_garch <- read.csv("forecast_predictions_garch.csv")
-data_lstm <- read.csv("forecast_predictions_garch.csv")
+data_lstm <- read.csv("forecast_predictions_lstm.csv")
 
 #------------------------------------------------------------------------
 # 1. Plot for 5 values
@@ -305,8 +305,8 @@ plot(data_arima$test_data[1:5], type="l",
 lines(data_arima$pred5[1:5], col="darkred", type="l")
 lines(data_garch$pred5[1:5], col="darkgreen", type="l")
 lines(data_lstm$pred5[1:5], col="darkorange", type="l")
-legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
-       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+legend(x=3.5,y=50, legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.9)
 
 
 #------------------------------------------------------------------------
@@ -322,8 +322,8 @@ plot(data_arima$test_data[1:22], type="l",
 lines(data_arima$pred22[1:22], col="darkred", type="l")
 lines(data_garch$pred22[1:22], col="darkgreen", type="l")
 lines(data_lstm$pred22[1:22], col="darkorange", type="l")
-legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
-       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+legend("bottomleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.9)
 
 
 #------------------------------------------------------------------------
@@ -339,8 +339,8 @@ plot(data_arima$test_data[1:250], type="l",
 lines(data_arima$pred250[1:250], col="darkred", type="l")
 lines(data_garch$pred250[1:250], col="darkgreen", type="l")
 lines(data_lstm$pred250[1:250], col="darkorange", type="l")
-legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
-       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+legend(x=150,y = 30, legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.9)
 
 
 
