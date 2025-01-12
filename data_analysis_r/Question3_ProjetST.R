@@ -60,12 +60,25 @@ data_all <- data.frame(
 Sys.setlocale("LC_TIME", "C")
 
 #Visualisation
-ggplot(data_all, aes(x = Date, y = Price)) +
-  geom_line(color = "blue", size = 1) +
-  geom_hline(yintercept = last_upper_band, color = "red", linetype = "dashed", size = 1) +
-  geom_hline(yintercept = last_lower_band, color = "green", linetype = "dashed", size = 1) +
-  labs(title = "Stock Prices with Bollinger Bands (Last Observation)",
-       x = "Date",
-       y = "Price") +
+bands_data <- data.frame(
+  Date = data_all$Date,
+  UpperBand = rep(last_upper_band, nrow(data_all)),
+  LowerBand = rep(last_lower_band, nrow(data_all))
+)
+
+ggplot(data_all, aes(x = Date)) +
+  geom_line(aes(y = Price, color = "Stock Price"), size = 1) +
+  geom_line(data = bands_data, aes(y = UpperBand, color = "Upper Band"), linetype = "dashed", size = 1) +
+  geom_line(data = bands_data, aes(y = LowerBand, color = "Lower Band"), linetype = "dashed", size = 1) +
+  labs(
+    title = "Stock Prices with Bollinger Bands (Last Observation)",
+    x = "Date",
+    y = "Price",
+    color = "Legend"  
+  ) +
+  scale_color_manual(
+    values = c("Stock Price" = "darkblue", "Upper Band" = "darkred", "Lower Band" = "darkgreen")
+  ) +
   scale_x_date(date_labels = "%b %Y", date_breaks = "1 month") +
   theme_minimal()
+
