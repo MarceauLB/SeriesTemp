@@ -11,12 +11,12 @@ rm(list = ls())
 # Question 3: Some relevant features
 #------------------------------------------------------------------------
 
-
 # Define the ticker symbol
 ticker <- "GOOGL"
 
 # Dates
 start_date <- "2007-01-01"
+end_date <- "2018-12-31"
 end_date <- "2007-03-31"
 
 # Import data 
@@ -28,16 +28,16 @@ google_open_prices <- GOOGL$open
 google_open_prices <- as.numeric(google_open_prices)
 
 # Calculate the moving average (MA) over 14 day
-moving_average <- TTR::SMA(google_open_prices, n = 14)
+moving_average <- TTR::SMA(google_open_prices, n = 250)
 
 # Calculate RSI over 14 day
-rsi <- TTR::RSI(google_open_prices, n = 14)
+rsi <- TTR::RSI(google_open_prices, n = 250)
 
 # Calculate the Bollinger Bands over 14 day
-bollinger <- TTR::BBands(google_open_prices, n = 14)
+bollinger <- TTR::BBands(google_open_prices, n = 250)
 
 # Obtain the values of the last 14 days
-last_14_prices <- tail(google_open_prices, 14)
+last_14_prices <- tail(google_open_prices, 250)
 last_ma <- tail(moving_average, 1)
 last_rsi <- tail(rsi, 1)
 last_upper_band <- tail(bollinger[, "up"], 1)

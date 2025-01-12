@@ -133,9 +133,14 @@ spec.pgram(serie_diff, col = "darkblue", main = "Smoothing periodogram of the lo
            span = 4)
 # Again, no clear seasonality but note that a season might be hard to find with data for each working day
 
+
+###################################################################################
+# Train and Test datasets
 google_open_prices$open
 training_data <- subset(google_open_prices, index(google_open_prices) <= "2017-12-31")
+train_data <- ts(training_data)
 test_data <- subset(google_open_prices, index(google_open_prices) > "2017-12-31")
+test_data <- ts(test_data)
 train_diff <- serie_diff[1:2768]
 test_diff <- serie_diff[2769:3018]
 2768+250
@@ -197,20 +202,20 @@ tsdiag(best_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
 
 par(mfrow=c(2,1))
 hist(best_model_arima$residuals, main = "Histogram of residuals with the proposed best ARIMA model",
-     col = "darkblue") # should look normal: not very good
-qqnorm(best_model$residuals) # should be almost aligned with the first bissector:
+     col = "darkblue",breaks = 50) # should look normal: not very good
+qqnorm(best_model_arima$residuals) # should be almost aligned with the first bissector:
 # not the case (outliers?)
-qqline(best_model$residuals, col = "red")
+qqline(best_model_arima$residuals, col = "red")
 dev.off()
 
 # auto.arima model
 tsdiag(suggested_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
 
 par(mfrow=c(2,1))
-hist(best_model_arima$residuals, main = "Histogram of residuals with the ARIMA model with auto.arima",
+hist(suggested_model_arima$residuals, main = "Histogram of residuals with the ARIMA model with auto.arima",
      col = "darkblue")
-qqnorm(best_model$residuals)
-qqline(best_model$residuals, col = "red")
+qqnorm(suggested_model_arima$residuals)
+qqline(suggested_model_arima$residuals, col = "red")
 dev.off()
 # exact same conclusions here
 
@@ -218,51 +223,128 @@ dev.off()
 # Forecasting
 #------------------------------------------------------------------------
 # use function "predict"
+par(mfrow=c(1,1))
+plot(test_data,main = "Test Data", col="darkblue")
 
 # We use here the ARIMA Model for making predictions
 best_model_arima  # Display the model details
 
 # First 5 data points from the test set
-test_diff[1:5]
+test_data[1:5]
 p5 <- predict(best_model_arima, 5)
+pred5 <- train_data[length(train_data)]*exp(cumsum(p5$pred))
 
 # Calculate MAE, MSE, RMSE for 5-step forecast
-mae_arima_5 <- mean(abs(test_diff[1:5] - p5$pred))  # Mean Absolute Error
-mse_arima_5 <- mean((test_diff[1:5] - p5$pred)^2)  # Mean Squared Error
+mae_arima_5 <- mean(abs(test_data[1:5] - pred5))  # Mean Absolute Error
+mse_arima_5 <- mean((test_data[1:5] - pred5)^2)  # Mean Squared Error
 rmse_arima_5 <- sqrt(mse_arima_5)  # Root Mean Squared Error
 mae_arima_5 
 mse_arima_5 
 rmse_arima_5
 
 # First 22 data points from the test set
-test_diff[1:22]
+test_data[1:22]
 p22 <- predict(best_model_arima, 22)
+pred22 <- train_data[length(train_data)]*exp(cumsum(p22$pred))
 
-mae_arima_22 <- mean(abs(test_diff[1:22] - p22$pred))
-mse_arima_22 <- mean((test_diff[1:22] - p22$pred)^2)
+mae_arima_22 <- mean(abs(test_data[1:22] - pred22))
+mse_arima_22 <- mean((test_data[1:22] - pred22)^2)
 rmse_arima_22 <- sqrt(mse_arima_22)
 mae_arima_22
 mse_arima_22 
 rmse_arima_22
 
 # First 250 data points from the test set
-test_diff[1:250]
+test_data[1:250]
 p250 <- predict(best_model_arima, 250)
-mae_arima_250 <- mean(abs(test_diff[1:250] - p250$pred))
-mse_arima_250 <- mean((test_diff[1:250] - p250$pred)^2)
+pred250 <- train_data[length(train_data)]*exp(cumsum(p250$pred))
+
+mae_arima_250 <- mean(abs(test_data[1:250] - pred250))
+mse_arima_250 <- mean((test_data[1:250] - pred250)^2)
 rmse_arima_250 <- sqrt(mse_arima_250)
 mae_arima_250
 mse_arima_250 
 rmse_arima_250
 
+par(mfrow=c(1,1))
 
-plot(test_diff[1:22], type="l", 
-     ylim=c(min(c(p22$pred, test_diff[1:22])), max(c(p5$pred, test_diff[1:22]))), 
-     col="blue", 
+pred5_arima <- c(pred5, rep(NA, 250 - length(pred5)))
+pred22_arima <- c(pred22, rep(NA, 250 - length(pred22)))
+pred250_arima <- c(pred250, rep(NA, 250 - length(pred250)))
+
+# Create a data frame combining actual and predicted values
+create_data <- data.frame(
+  test_data = test_data[1:250], 
+  pred5 = pred5_arima, 
+  pred22 = pred22_arima, 
+  pred250 = pred250_arima
+)
+write.csv(create_data, "forecast_predictions_arima.csv", row.names = FALSE)
+
+
+#################################################################################
+# Prédictions for ARIMA, GARCH and LSTM (5, 22 et 250 jours) 
+#################################################################################
+setwd("~/00_Ensai/serie_temporelle/SeriesTemp/data_analysis_r/out-predictions/")
+#Lire les données à partir du fichier CSV
+data_arima <- read.csv("forecast_predictions_arima.csv")
+data_garch <- read.csv("forecast_predictions_garch.csv")
+data_lstm <- read.csv("forecast_predictions_garch.csv")
+data_lstm <- 1+data_lstm
+
+#------------------------------------------------------------------------
+# 1. Plot for 5 values
+#------------------------------------------------------------------------
+plot(data_arima$test_data[1:5], type="l", 
+     ylim=c(min(c(data_arima$pred5[1:5], data_arima$test_data[1:5], data_garch$pred5[1:5], data_lstm$pred5[1:5])), 
+            max(c(data_arima$pred5[1:5], data_arima$test_data[1:5], data_garch$pred5[1:5],data_lstm$pred5[1:5]))), 
+     col="darkblue", 
      main="Actual vs Predicted for 5 Steps", 
      xlab="Time", 
      ylab="Value")
-lines(c(p22$pred), col="red")
+lines(data_arima$pred5[1:5], col="darkred", type="l")
+lines(data_garch$pred5[1:5], col="darkgreen", type="l")
+lines(data_lstm$pred5[1:5], col="darkorange", type="l")
+legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+
+
+#------------------------------------------------------------------------
+# 2. Plot for 22 values
+#------------------------------------------------------------------------
+plot(data_arima$test_data[1:22], type="l",
+     ylim=c(min(c(data_arima$test_data[1:22], data_arima$pred22[1:22], data_garch$pred22[1:22], data_lstm$pred22[1:22])), 
+            max(c(data_arima$test_data[1:22], data_arima$pred22[1:22], data_garch$pred22[1:22], data_lstm$pred22[1:22]))), 
+     col="darkblue", 
+     main="Actual vs Predicted for 22 Steps", 
+     xlab="Time", 
+     ylab="Value")
+lines(data_arima$pred22[1:22], col="darkred", type="l")
+lines(data_garch$pred22[1:22], col="darkgreen", type="l")
+lines(data_lstm$pred22[1:22], col="darkorange", type="l")
+legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+
+
+#------------------------------------------------------------------------
+# 3. Plot for 250 values
+#------------------------------------------------------------------------
+plot(data_arima$test_data[1:250], type="l", 
+     ylim=c(min(c(data_arima$test_data[1:250], data_arima$pred250[1:250], data_garch$pred250[1:250], data_lstm$pred250[1:250])), 
+            max(c(data_arima$test_data[1:250], data_arima$pred250[1:250], data_garch$pred250[1:250],data_lstm$pred250[1:250]))), 
+     col="darkblue", 
+     main="Actual vs Predicted for 250 Steps", 
+     xlab="Time", 
+     ylab="Value")
+lines(data_arima$pred250[1:250], col="darkred", type="l")
+lines(data_garch$pred250[1:250], col="darkgreen", type="l")
+lines(data_lstm$pred250[1:250], col="darkorange", type="l")
+legend("topleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+       col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.8)
+
+
+
+
 
 
 
