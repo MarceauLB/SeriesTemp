@@ -198,11 +198,27 @@ suggested_model_arima
 # Proposed model
 tsdiag(best_model_arima, gof.lag = 100, main = "Ljung-Box test on residuals")
 # residuals appear centered (first plot), uncorrelated (second plot) 
-# but Ljung-Box statistics lie under 0.05 threshold for lag >= 37.
+# but Ljung-Box statistics lie under 0.05 threshold for lag >= 31.
+
+residuals_arima = residuals(best_model_arima)
+
+# Residuals
+plot(residuals_arima, main = "Time series of residuals", ylab = "Residuals", xlab = "Time", type = "l",
+     col = "darkblue")
+abline(h=mean(residuals_arima), col = "red")
+
+# ACF of residuals
+acf(residuals_arima, main = "ACF of Residuals")
+
+# Ljung-Box test p-values
+ljung_box <- sapply(1:50, function(lag) Box.test(residuals_arima, lag = lag, type = "Ljung-Box")$p.value)
+plot(1:50, ljung_box, type = "b", main = "Ljung-Box Test p-values", 
+     xlab = "Lag", ylab = "p-value", col = "black")
+abline(h = 0.05, col = "blue", lty = 2)
 
 par(mfrow=c(2,1))
 hist(best_model_arima$residuals, main = "Histogram of residuals with the proposed best ARIMA model",
-     col = "darkblue",breaks = 50) # should look normal: not very good
+     breaks = 200, xlim = c(-0.1,0.1), col = "darkblue") # should look normal: not very good
 qqnorm(best_model_arima$residuals) # should be almost aligned with the first bissector:
 # should look normal: not very good
 # not the case (outliers?)
