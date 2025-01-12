@@ -19,6 +19,7 @@ library(quantmod)
 library(tseries)
 library(forecast)
 library(evd)
+library(fracdiff) # For FARIMA models
 
 # Set Seed 
 set.seed(13012025)
@@ -188,7 +189,6 @@ suggested_model_arima <- auto.arima(train_diff)
 suggested_model_arima
 # ARIMA(3,0,2) suggested
 
-
 # Further analysis of residuals: Ljung-Box test
 # Proposed model
 tsdiag(best_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
@@ -198,9 +198,9 @@ tsdiag(best_model_arima, gof.lag = 50, main = "Ljung-Box test on residuals")
 par(mfrow=c(2,1))
 hist(best_model_arima$residuals, main = "Histogram of residuals with the proposed best ARIMA model",
      col = "darkblue") # should look normal: not very good
-qqnorm(best_model$residuals) # should be almost aligned with the first bissector:
+qqnorm(best_model_arima$residuals) # should be almost aligned with the first bissector:
 # not the case (outliers?)
-qqline(best_model$residuals, col = "red")
+qqline(best_model_arima$residuals, col = "red")
 dev.off()
 
 # auto.arima model
@@ -264,6 +264,50 @@ plot(test_diff[1:22], type="l",
      ylab="Value")
 lines(c(p22$pred), col="red")
 
+### FARIMA model
+# This model requires a stationary time series in input so we will use the 
+# differenced series (otherwise, the log-series returns an error)
 
+# Check best FARIMA model for different values of p and q based on AIC and BIC
+p_max <- 7
+q_max <- 5
+AIC_farima <- matrix(0,p_max,q_max)
+BIC_farima <-  matrix(0,p_max,q_max)
 
+for (i in 1:p_max){
+  for (j in 1:q_max){
+    model <- fracdiff(train_diff, nar = i-1, nma = j-1)
+    test <- Box.test(model$residuals, lag=30)
+    if(test$p.value>0.01){ 
+      # Box-Pierce test suggesting no autocorrelation between residuals
+      AIC_farima[i,j] = AIC(model)
+      BIC_farima[i,j] = BIC(model)}
+    else{
+      # Box-Pierce test suggesting autocorrelation between residuals (cases to exclude)
+      AIC_farima[i,j] = Inf
+      BIC_farima[i,j] = Inf
+    }
+  }
+}
 
+AIC_farima
+index_best_farima_AIC = which(AIC_farima == min(AIC_farima), arr.ind = TRUE)
+index_best_farima_AIC
+# lower AIC => p = 2 and q = 4
+
+BIC_farima
+index_best_farima_BIC = which(BIC_farima == min(BIC_farima), arr.ind = TRUE)
+index_best_arima_BIC
+# lower BIC => p = 1 and q = 3
+
+# For sparsity reasons, we will once again keep the second model with p = 1 and q = 3.
+
+# Estimation and confidence interval of the fractional differencing parameter
+best_model_farima = fracdiff(train_diff, nar = 1, nma = 1)
+d_hat = best_model_farima$d
+d_se = best_model_farima$stderror.dp[1]
+
+conf_int_fractional_diff_param = c(d_hat -1.96*d_se, d_hat + 1.96*d_se)
+conf_int_fractional_diff_param
+# 0 belongs to the confidence interval, suggesting that a FARIMA model is not adapted
+# to our data. An ARIMA model seems better here.
