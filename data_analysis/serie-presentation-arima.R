@@ -321,7 +321,7 @@ plot(data_arima$test_data[1:5], type="l",
 lines(data_arima$pred5[1:5], col="darkred", type="l")
 lines(data_garch$pred5[1:5], col="darkgreen", type="l")
 lines(data_lstm$pred5[1:5], col="darkorange", type="l")
-legend(x=3.5,y=50, legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
+legend("bottomleft", legend=c("Actual (Test Data)", "ARIMA Prediction", "GARCH Prediction","LSTM Prediction"), 
        col=c("darkblue", "darkred", "darkgreen","darkorange"), lty=1, cex=0.9)
 
 
