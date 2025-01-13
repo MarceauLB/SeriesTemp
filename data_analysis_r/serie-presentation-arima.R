@@ -280,9 +280,9 @@ create_data <- data.frame(
   pred22 = pred22_arima, 
   pred250 = pred250_arima
 )
-setwd("~/00_Ensai/serie_temporelle/SeriesTemp/data_analysis_r/out-predictions/")
-write.csv(create_data, "forecast_predictions_arima.csv", row.names = FALSE)
 
+setwd("~/SeriesTemp/data_analysis_r/out-predictions/")
+write.csv(create_data, "forecast_predictions_arima.csv", row.names = FALSE)
 
 #################################################################################
 # Prédictions for ARIMA, GARCH and LSTM (5, 22 et 250 jours) 
